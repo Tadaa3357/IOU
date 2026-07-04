@@ -3,8 +3,17 @@ import { createClient } from '@supabase/supabase-js'
 const fallbackSupabaseUrl = 'https://qnhlugcjrolicfeijafs.supabase.co'
 const fallbackSupabaseAnonKey = 'sb_publishable_Xt61klO04qFlrMRBkO7BDg_ldLpg4tV'
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || fallbackSupabaseUrl).trim()
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || fallbackSupabaseAnonKey).trim()
+const supabaseUrl = (
+    import.meta.env.VITE_SUPABASE_URL ||
+    import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+    fallbackSupabaseUrl
+).trim()
+
+const supabaseAnonKey = (
+    import.meta.env.VITE_SUPABASE_ANON_KEY ||
+    import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    fallbackSupabaseAnonKey
+).trim()
 
 export const supabase = (() => {
     if (!supabaseUrl || !supabaseAnonKey) {
