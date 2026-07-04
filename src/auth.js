@@ -1,6 +1,22 @@
 import { supabase } from './supabaseClient'
 
+function ensureSupabaseClient() {
+    if (!supabase) {
+        return {
+            success: false,
+            message: 'Supabase is not configured yet. Add your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY values.',
+        }
+    }
+
+    return null
+}
+
 export async function registerUser({ name, email, password }) {
+    const missingConfig = ensureSupabaseClient()
+    if (missingConfig) {
+        return missingConfig
+    }
+
     const normalizedEmail = email.trim().toLowerCase()
 
     if (!name.trim() || !normalizedEmail || !password) {
@@ -30,6 +46,11 @@ export async function registerUser({ name, email, password }) {
 }
 
 export async function authenticateUser({ email, password }) {
+    const missingConfig = ensureSupabaseClient()
+    if (missingConfig) {
+        return missingConfig
+    }
+
     const normalizedEmail = email.trim().toLowerCase()
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -52,6 +73,10 @@ export async function authenticateUser({ email, password }) {
 }
 
 export async function getCurrentUser() {
+    if (!supabase) {
+        return null
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
@@ -63,5 +88,9 @@ export async function getCurrentUser() {
 }
 
 export async function logoutUser() {
+    if (!supabase) {
+        return
+    }
+
     await supabase.auth.signOut()
 }
