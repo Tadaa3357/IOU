@@ -1,70 +1,67 @@
-const USERS_STORAGE_KEY = 'iou-users'
-const CURRENT_USER_STORAGE_KEY = 'iou-current-user'
+import { supabase } from './supabaseClient'
 
-function readUsers() {
-    try {
-        const stored = localStorage.getItem(USERS_STORAGE_KEY)
-        return stored ? JSON.parse(stored) : []
-    } catch {
-        return []
-    }
-}
-
-function writeUsers(users) {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
-}
-
-export function registerUser({ name, email, password }) {
+export async function registerUser({ name, email, password }) {
     const normalizedEmail = email.trim().toLowerCase()
-    const users = readUsers()
 
     if (!name.trim() || !normalizedEmail || !password) {
         return { success: false, message: 'Please fill in all fields.' }
     }
 
-    const emailExists = users.some((user) => user.email === normalizedEmail)
-    if (emailExists) {
-        return { success: false, message: 'An account with that email already exists.' }
-    }
-
-    const user = {
-        id: crypto.randomUUID(),
-        name: name.trim(),
+    const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
+        options: {
+            data: { name: name.trim() },
+        },
+    })
+
+    if (error) {
+        return { success: false, message: error.message }
     }
 
-    users.push(user)
-    writeUsers(users)
-    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user))
-
-    return { success: true, user }
+    return {
+        success: true,
+        user: {
+            id: data.user?.id,
+            name: data.user?.user_metadata?.name || name.trim(),
+            email: normalizedEmail,
+        },
+    }
 }
 
-export function authenticateUser({ email, password }) {
+export async function authenticateUser({ email, password }) {
     const normalizedEmail = email.trim().toLowerCase()
-    const users = readUsers()
-    const user = users.find(
-        (entry) => entry.email === normalizedEmail && entry.password === password,
-    )
 
-    if (!user) {
-        return { success: false, message: 'Invalid email or password.' }
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+    })
+
+    if (error) {
+        return { success: false, message: error.message }
     }
 
-    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user))
-    return { success: true, user }
-}
-
-export function getCurrentUser() {
-    try {
-        const stored = localStorage.getItem(CURRENT_USER_STORAGE_KEY)
-        return stored ? JSON.parse(stored) : null
-    } catch {
-        return null
+    return {
+        success: true,
+        user: {
+            id: data.user?.id,
+            name: data.user?.user_metadata?.name || data.user?.email,
+            email: data.user?.email,
+        },
     }
 }
 
-export function logoutUser() {
-    localStorage.removeItem(CURRENT_USER_STORAGE_KEY)
+export async function getCurrentUser() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    return {
+        id: user.id,
+        name: user.user_metadata?.name || user.email,
+        email: user.email,
+    }
+}
+
+export async function logoutUser() {
+    await supabase.auth.signOut()
 }

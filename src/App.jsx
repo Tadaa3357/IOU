@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import {
   authenticateUser,
@@ -17,21 +17,38 @@ function App() {
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState(initialForm)
   const [message, setMessage] = useState('')
-  const [user, setUser] = useState(() => getCurrentUser())
+  const [user, setUser] = useState(null)
 
   const title = useMemo(() => (mode === 'login' ? 'Log in' : 'Sign up'), [mode])
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadUser = async () => {
+      const currentUser = await getCurrentUser()
+      if (mounted) {
+        setUser(currentUser)
+      }
+    }
+
+    loadUser()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setMessage('')
 
     if (mode === 'login') {
-      const result = authenticateUser({ email: form.email, password: form.password })
+      const result = await authenticateUser({ email: form.email, password: form.password })
       if (!result.success) {
         setMessage(result.message)
         return
@@ -42,7 +59,7 @@ function App() {
       return
     }
 
-    const result = registerUser({ name: form.name, email: form.email, password: form.password })
+    const result = await registerUser({ name: form.name, email: form.email, password: form.password })
     if (!result.success) {
       setMessage(result.message)
       return
@@ -52,8 +69,8 @@ function App() {
     setForm(initialForm)
   }
 
-  const handleLogout = () => {
-    logoutUser()
+  const handleLogout = async () => {
+    await logoutUser()
     setUser(null)
   }
 
