@@ -1,34 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { authenticateUser, registerUser } from './auth'
+import { getAuthErrorMessage } from './auth'
 
 describe('auth helpers', () => {
-    it('registers a new user and stores them locally', () => {
-        localStorage.clear()
+    it('returns a friendly message for email rate limits', () => {
+        const message = getAuthErrorMessage({ message: 'Email rate exceeded' })
 
-        const result = registerUser({ name: 'Ada', email: 'ada@example.com', password: 'secret123' })
-
-        expect(result.success).toBe(true)
-        expect(result.user.email).toBe('ada@example.com')
-        expect(localStorage.getItem('iou-users')).toContain('ada@example.com')
+        expect(message).toContain('wait a few minutes')
+        expect(message).toContain('different email')
     })
 
-    it('rejects a duplicate email during sign-up', () => {
-        localStorage.clear()
-        registerUser({ name: 'Ada', email: 'ada@example.com', password: 'secret123' })
+    it('returns the original message for unrelated errors', () => {
+        const message = getAuthErrorMessage({ message: 'Invalid login credentials' })
 
-        const result = registerUser({ name: 'Grace', email: 'ada@example.com', password: 'another' })
-
-        expect(result.success).toBe(false)
-        expect(result.message).toContain('already exists')
-    })
-
-    it('authenticates an existing user', () => {
-        localStorage.clear()
-        registerUser({ name: 'Linus', email: 'linus@example.com', password: 'open-source' })
-
-        const result = authenticateUser({ email: 'linus@example.com', password: 'open-source' })
-
-        expect(result.success).toBe(true)
-        expect(result.user.name).toBe('Linus')
+        expect(message).toBe('Invalid login credentials')
     })
 })

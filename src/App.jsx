@@ -18,6 +18,7 @@ function App() {
   const [form, setForm] = useState(initialForm)
   const [message, setMessage] = useState('')
   const [user, setUser] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const title = useMemo(() => (mode === 'login' ? 'Log in' : 'Sign up'), [mode])
 
@@ -45,10 +46,27 @@ function App() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    setMessage('')
+    if (isSubmitting) {
+      return
+    }
 
-    if (mode === 'login') {
-      const result = await authenticateUser({ email: form.email, password: form.password })
+    setMessage('')
+    setIsSubmitting(true)
+
+    try {
+      if (mode === 'login') {
+        const result = await authenticateUser({ email: form.email, password: form.password })
+        if (!result.success) {
+          setMessage(result.message)
+          return
+        }
+
+        setUser(result.user)
+        setForm(initialForm)
+        return
+      }
+
+      const result = await registerUser({ name: form.name, email: form.email, password: form.password })
       if (!result.success) {
         setMessage(result.message)
         return
@@ -56,17 +74,9 @@ function App() {
 
       setUser(result.user)
       setForm(initialForm)
-      return
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const result = await registerUser({ name: form.name, email: form.email, password: form.password })
-    if (!result.success) {
-      setMessage(result.message)
-      return
-    }
-
-    setUser(result.user)
-    setForm(initialForm)
   }
 
   const handleLogout = async () => {
@@ -149,8 +159,8 @@ function App() {
 
               {message ? <p className="message">{message}</p> : null}
 
-              <button className="submit-btn" type="submit">
-                {mode === 'login' ? 'Log in' : 'Create account'}
+              <button className="submit-btn" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Log in' : 'Create account'}
               </button>
             </form>
           </div>

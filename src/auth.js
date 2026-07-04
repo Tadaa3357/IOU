@@ -11,6 +11,25 @@ function ensureSupabaseClient() {
     return null
 }
 
+export function getAuthErrorMessage(error) {
+    const message = typeof error === 'string' ? error : error?.message || ''
+    const normalizedMessage = message.toLowerCase()
+
+    if (
+        normalizedMessage.includes('email rate exceeded') ||
+        normalizedMessage.includes('rate limit') ||
+        normalizedMessage.includes('too many requests')
+    ) {
+        return 'We are getting a lot of sign-up requests right now. Please wait a few minutes and try again with a different email address.'
+    }
+
+    if (normalizedMessage.includes('already registered') || normalizedMessage.includes('already exists')) {
+        return 'This email is already in use. Try logging in instead.'
+    }
+
+    return message
+}
+
 export async function registerUser({ name, email, password }) {
     const missingConfig = ensureSupabaseClient()
     if (missingConfig) {
@@ -32,7 +51,7 @@ export async function registerUser({ name, email, password }) {
     })
 
     if (error) {
-        return { success: false, message: error.message }
+        return { success: false, message: getAuthErrorMessage(error) }
     }
 
     return {
@@ -59,7 +78,7 @@ export async function authenticateUser({ email, password }) {
     })
 
     if (error) {
-        return { success: false, message: error.message }
+        return { success: false, message: getAuthErrorMessage(error) }
     }
 
     return {
